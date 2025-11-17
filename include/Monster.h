@@ -3,6 +3,7 @@
 
 class Monster {
 public:
+    void resetRoundStats();
     Monster(const std::string& n, int hp, int atk, const std::string& sprite);
 
     // Sửa hàm takeDamage để tính cả thủ

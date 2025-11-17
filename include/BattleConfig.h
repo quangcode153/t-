@@ -8,6 +8,7 @@ struct StageInfo {
 
 class BattleConfig {
 public:
+    // Khai báo static để truy cập toàn cục
     static std::vector<StageInfo> stages;
     static StageInfo boss;
 

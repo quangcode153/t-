@@ -21,6 +21,8 @@
         "thread": "cpp",
         "limits": "cpp",
         "mutex": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "format": "cpp",
+        "optional": "cpp"
     }
 }
