@@ -3,20 +3,16 @@
 
 class Monster {
 public:
-    void resetRoundStats();
     Monster(const std::string& n, int hp, int atk, const std::string& sprite);
 
-    // Sửa hàm takeDamage để tính cả thủ
     void takeDamage(int dmg);
-    
-    // Các hàm mới cho cơ chế thủ
-    bool tryDefend(); // Trả về true nếu thủ thành công (không bị cooldown)
-    void endTurn();   // Gọi cuối mỗi lượt để giảm cooldown/duration
-    
-    // Giữ nguyên các hàm cũ
+    bool tryDefend();
+    void endTurn();
+    void resetRoundStats(); // Reset chỉ số đầu vòng
+
     void healFull();
     void addShield(int val);
-    void buffAttack(int v);
+    void buffAttack(int v); 
     void increaseMaxHP(int v);
     void addItemSlot();
 
@@ -24,25 +20,29 @@ public:
     std::string getName() const;
     int getHP() const;
     int getMaxHP() const;
-    int getATK() const;
+    
+    // Hàm này sẽ trả về (Công Gốc + Buff)
+    int getATK() const; 
+    
     int getShield() const;
     int getItemSlots() const;
     std::string getSpritePath() const;
-    
-    // Getter cho UI hiển thị
     int getDefDuration() const { return defDuration; }
     int getDefCooldown() const { return defCooldown; }
+    int getBuffDuration() const { return buffDuration; } // Kiểm tra thời gian buff
 
 private:
     std::string name;
     int maxHP;
     int currentHP;
-    int attack;
+    int attack;      // Công gốc
+    int tempAttack;  // Công được buff thêm (Biến mới)
+    int buffDuration;// Thời gian buff còn lại (Biến mới)
+
     int shield;
     int itemSlots;
     std::string spritePath;
 
-    // --- MỚI: Biến cho cơ chế thủ ---
-    int defDuration; // Số lượt còn tác dụng phòng thủ (giảm 2 dmg)
-    int defCooldown; // Số lượt phải chờ để dùng lại
+    int defDuration;
+    int defCooldown;
 };
