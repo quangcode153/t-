@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build SFML Game",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "& {",
+                // 1. Tạo thư mục output
+                "if (!(Test-Path output)) { New-Item -ItemType Directory -Path output | Out-Null }",
+
+                // 2. Copy DLL (Quan trọng: Lấy từ thư mục SFML nằm trong dự án)
+                "Copy-Item -Path '${workspaceFolder}/SFML-2.6.0/bin/*.dll' -Destination '${workspaceFolder}/output/' -Force;",
+
+                // 3. Copy Assets
+                "if (Test-Path '${workspaceFolder}/assets') { Copy-Item -Path '${workspaceFolder}/assets' -Destination '${workspaceFolder}/output/' -Recurse -Force }",
+
+                // 4. Biên dịch (Tự động tìm tất cả file .cpp trong source và các thư mục con nếu có)
+                // Lưu ý: Nếu bạn có thư mục con (như Enemies), hãy dùng dòng lệnh dưới đây:
+                "$files = Get-ChildItem -Path '${workspaceFolder}/source' -Recurse -Filter *.cpp | Select-Object -ExpandProperty FullName;",
+                "g++ $files -I'${workspaceFolder}/include' -I'${workspaceFolder}/SFML-2.6.0/include' -L'${workspaceFolder}/SFML-2.6.0/lib' -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -mconsole -o '${workspaceFolder}/output/main.exe';",
+
+                // 5. Chạy game
+                "if ($?) { Start-Process -FilePath '${workspaceFolder}/output/main.exe' -WorkingDirectory '${workspaceFolder}/output' }",
+                "}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Biên dịch Portable: Chạy được trên mọi máy không cần cài lại đường dẫn"
+        }
+    ]
+}

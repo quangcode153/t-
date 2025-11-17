@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "SFML Project",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/source",
+                "${workspaceFolder}/SFML-2.6.0/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "SFML_STATIC" 
+            ],
+            "compilerPath": "g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
