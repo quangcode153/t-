@@ -1,5 +1,6 @@
+#define _USE_MATH_DEFINES
 #include "Battle.h"
-#include "BattleConfig.h"
+#include "BattleConfig.h" 
 #include "Utils.h"
 #include <iostream>
 #include <algorithm>
@@ -18,10 +19,16 @@ static std::map<string, sf::Texture> textureCache;
 Battle::Battle()
     : actionTimer(0.f), state(BattleState::START_ROUND), winFlag(false), isAllyTurn(true)
 {
-    if (!font.loadFromFile("assets/fonts/arial.ttf")) cerr << "Error loading font\n";
-    if (backgroundTex.loadFromFile("assets/sprites/Background_Battle.jpg")) {
+    if (!font.loadFromFile("assets/fonts/arial.ttf")) {
+        cerr << "Battle Error: Failed to load font arial.ttf" << endl;
+    }
+    
+    if (!backgroundTex.loadFromFile("assets/sprites/Background_Battle.jpg")) {
+        cerr << "Battle Error: Failed to load Background_Battle.jpg" << endl;
+    } else {
         backgroundSprite.setTexture(backgroundTex);
     }
+
     infoText.setFont(font);
     infoText.setCharacterSize(24);
     infoText.setFillColor(sf::Color::White);
@@ -31,7 +38,6 @@ Battle::Battle()
 }
 
 void Battle::loadStage(int idx) {
-    // Kiểm tra an toàn để tránh crash nếu config lỗi
     if (idx >= 0 && idx < (int)BattleConfig::stages.size()) {
         enemies = BattleConfig::stages[idx].enemies;
     } else {
@@ -43,57 +49,11 @@ void Battle::loadBoss() { enemies = BattleConfig::boss.enemies; }
 
 void Battle::setAllies(const vector<Monster>& a) { 
     allies = a; 
-    // Khởi tạo animatedAllies ngay khi set
     animatedAllies.clear();
     for(const auto& m : allies) {
         animatedAllies.push_back({m, {0,0}, {0,0}, 0.f, 0.f, false, 0.f}); 
     }
     calculateFormationPositions(true);
-}
-
-// --- [FIX QUAN TRỌNG] SỬA LẠI LOGIC START ROUND ---
-void Battle::startRound() {
-    state = BattleState::WAIT_INPUT;
-    playerDice.clear();
-    enemyDice.clear();
-    isAllyTurn = true; 
-
-    // 1. Reset chỉ số (Giáp/Thủ) của dữ liệu gốc
-    for(auto& m : allies) m.resetRoundStats();
-    for(auto& m : enemies) m.resetRoundStats();
-    
-    // 2. [FIX] Khởi tạo lại AnimatedEnemies NGAY TẠI ĐÂY
-    // Để đảm bảo kích thước mảng khớp với số lượng quái vật hiện tại
-    animatedEnemies.clear();
-    for(const auto& m : enemies) {
-        animatedEnemies.push_back({m, {0,0}, {0,0}, 0.f, 0.f, false, 0.f});
-    }
-
-    // 3. Đồng bộ lại AnimatedAllies (để cập nhật việc mất giáp trên UI)
-    for(size_t i=0; i<allies.size(); ++i) {
-        if(i < animatedAllies.size()) animatedAllies[i].monster = allies[i];
-    }
-
-    // 4. Random Xúc Xắc
-    for (int i = 0; i < 2; ++i) {
-        DieInfo die;
-        die.isUsed = false;
-        int typeRoll = Utils::randomInt(0, 100);
-        
-        if (typeRoll < 40) { die.type = DiceFace::Attack; die.value = Utils::randomInt(3, 8); die.description = "ATK"; } 
-        else if (typeRoll < 70) { die.type = DiceFace::Shield; die.value = Utils::randomInt(2, 6); die.description = "DEF"; } 
-        else if (typeRoll < 85) { die.type = DiceFace::BuffATK; die.value = Utils::randomInt(1, 3); die.description = "BUFF"; } 
-        else { die.type = DiceFace::RotateLeft; die.value = 0; die.description = "ROT"; }
-        
-        playerDice.push_back(die);
-        enemyDice.push_back(die);
-    }
-
-    // 5. Tính toán vị trí đứng
-    calculateFormationPositions(true);
-    calculateFormationPositions(false);
-    
-    infoText.setString("LEFT TURN: Use [1] or [2]");
 }
 
 void Battle::calculateFormationPositions(bool isPlayerTeam) {
@@ -112,12 +72,61 @@ void Battle::calculateFormationPositions(bool isPlayerTeam) {
     for (size_t i = 0; i < aliveMonsters.size(); ++i) {
         AnimatedMonster* am = aliveMonsters[i];
         float angle = -angularSpread / 2.f + i * angleStep; 
-        sf::Vector2f targetPos = { baseCenter.x + baseRadius * cos(angle), baseCenter.y + baseRadius * sin(angle) * 0.8f };
+        
+        sf::Vector2f targetPos = {
+            baseCenter.x + baseRadius * cos(angle),
+            baseCenter.y + baseRadius * sin(angle) * 0.8f
+        };
+
         if (am->currentPos.x == 0 && am->currentPos.y == 0) am->currentPos = targetPos;
         am->targetPos = targetPos;
         am->moveTime = 0.f; am->moveDuration = 0.f;
     }
-    for(auto& am : team) if (!am.monster.isAlive()) { am.targetPos = {-1000.f, -1000.f}; am.currentPos = {-1000.f, -1000.f}; }
+    
+    for(auto& am : team) {
+        if (!am.monster.isAlive()) {
+            am.targetPos = {-1000.f, -1000.f};
+            am.currentPos = {-1000.f, -1000.f};
+        }
+    }
+}
+
+void Battle::startRound() {
+    state = BattleState::WAIT_INPUT;
+    playerDice.clear();
+    enemyDice.clear();
+    isAllyTurn = true; 
+
+    for(auto& m : allies) m.resetRoundStats();
+    for(auto& m : enemies) m.resetRoundStats();
+    
+    animatedEnemies.clear();
+    for(const auto& m : enemies) {
+        animatedEnemies.push_back({m, {0,0}, {0,0}, 0.f, 0.f, false, 0.f});
+    }
+
+    for(size_t i=0; i<allies.size(); ++i) {
+        if(i < animatedAllies.size()) animatedAllies[i].monster = allies[i];
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        DieInfo die;
+        die.isUsed = false;
+        int typeRoll = Utils::randomInt(0, 100);
+        
+        if (typeRoll < 40) { die.type = DiceFace::Attack; die.value = Utils::randomInt(3, 8); die.description = "ATK"; } 
+        else if (typeRoll < 70) { die.type = DiceFace::Shield; die.value = Utils::randomInt(2, 6); die.description = "DEF"; } 
+        else if (typeRoll < 85) { die.type = DiceFace::BuffATK; die.value = Utils::randomInt(1, 3); die.description = "BUFF"; } 
+        else { die.type = DiceFace::RotateLeft; die.value = 0; die.description = "ROT"; }
+        
+        playerDice.push_back(die);
+        enemyDice.push_back(die);
+    }
+
+    calculateFormationPositions(true);
+    calculateFormationPositions(false);
+    
+    infoText.setString("LEFT TURN: Use [1] or [2]");
 }
 
 void Battle::playerSelectDie(int index) {
@@ -147,16 +156,31 @@ void Battle::playerSelectDie(int index) {
     actionTimer = 1.0f;
 }
 
+// --- [QUAN TRỌNG] FIX LỖI Ở ĐÂY ---
 void Battle::executeDieEffect(DieInfo& die, bool isPlayerAction) {
     vector<Monster>* pActorTeam = isPlayerAction ? &allies : &enemies;
     vector<Monster>* pTargetTeam = isPlayerAction ? &enemies : &allies;
     vector<AnimatedMonster>* pAnimActor = isPlayerAction ? &animatedAllies : &animatedEnemies;
     vector<AnimatedMonster>* pAnimTarget = isPlayerAction ? &animatedEnemies : &animatedAllies;
 
-    if (pActorTeam->empty() || !(*pActorTeam)[0].isAlive()) return; 
+    // Tạo tham chiếu
+    vector<Monster>& actorTeam = *pActorTeam;
+    vector<Monster>& targetTeam = *pTargetTeam;
+    vector<AnimatedMonster>& animActor = *pAnimActor;
+    vector<AnimatedMonster>& animTarget = *pAnimTarget;
 
-    string actorName = (*pAnimActor)[0].monster.getName();
-    int targetIdx = findFirstAlive(*pTargetTeam);
+    // [FIX]: Tìm người thực hiện hành động (Actor) là con ĐẦU TIÊN CÒN SỐNG
+    // Chứ không phải con ở vị trí số 0 (vì vị trí 0 có thể đã chết)
+    int actorIdx = findFirstAlive(actorTeam);
+    
+    // Nếu cả team đã chết hết thì không làm gì cả
+    if (actorIdx == -1) return; 
+
+    // Lấy tên của người thực hiện (Actor)
+    string actorName = animActor[actorIdx].monster.getName();
+    
+    // Tìm mục tiêu (Target)
+    int targetIdx = findFirstAlive(targetTeam);
 
     string actionDesc = "";
     if (die.type == DiceFace::Attack) actionDesc = "Attack " + Utils::toString(die.value);
@@ -166,33 +190,37 @@ void Battle::executeDieEffect(DieInfo& die, bool isPlayerAction) {
 
     infoText.setString((isPlayerAction ? "[LEFT] " : "[RIGHT] ") + actorName + " uses " + actionDesc);
 
-    vector<Monster>& targetTeamRef = *pTargetTeam;
-    vector<Monster>& actorTeamRef = *pActorTeam;
-    vector<AnimatedMonster>& animTargetRef = *pAnimTarget;
-    vector<AnimatedMonster>& animActorRef = *pAnimActor;
-
     switch (die.type) {
         case DiceFace::Attack:
             if (targetIdx != -1) {
-                targetTeamRef[targetIdx].takeDamage(die.value);
-                animTargetRef[targetIdx].monster = targetTeamRef[targetIdx]; 
-                if (animTargetRef[targetIdx].monster.isAlive()) {
-                    animTargetRef[targetIdx].isHit = true;
-                    animTargetRef[targetIdx].hitTimer = 0.4f; 
+                int totalDmg = die.value; 
+                // Tấn công vào mục tiêu
+                targetTeam[targetIdx].takeDamage(totalDmg);
+                animTarget[targetIdx].monster = targetTeam[targetIdx]; 
+
+                if (animTarget[targetIdx].monster.isAlive()) {
+                    animTarget[targetIdx].isHit = true;
+                    animTarget[targetIdx].hitTimer = 0.4f; 
                 }
             }
             break;
+
         case DiceFace::Shield:
-            actorTeamRef[0].addShield(die.value);
-            animActorRef[0].monster = actorTeamRef[0]; 
+            // [FIX]: Buff giáp cho con đang đứng đầu (còn sống)
+            actorTeam[actorIdx].addShield(die.value);
+            animActor[actorIdx].monster = actorTeam[actorIdx]; 
             break;
+
         case DiceFace::BuffATK:
-            actorTeamRef[0].buffAttack(die.value);
-            animActorRef[0].monster = actorTeamRef[0];
+            // [FIX]: Buff công cho con đang đứng đầu
+            actorTeam[actorIdx].buffAttack(die.value);
+            animActor[actorIdx].monster = actorTeam[actorIdx];
             break;
+
         case DiceFace::RotateLeft:
             rotateTeam(isPlayerAction, true);
             break;
+            
         default: break;
     }
 }
@@ -222,8 +250,8 @@ void Battle::update(float dt) {
         state = BattleState::CHECK_END;
     }
     else if (state == BattleState::CHECK_END) {
-        for(size_t i=0; i<allies.size(); ++i) animatedAllies[i].monster = allies[i];
-        for(size_t i=0; i<enemies.size(); ++i) animatedEnemies[i].monster = enemies[i];
+        for(size_t i=0; i<allies.size(); ++i) if(i < animatedAllies.size()) animatedAllies[i].monster = allies[i];
+        for(size_t i=0; i<enemies.size(); ++i) if(i < animatedEnemies.size()) animatedEnemies[i].monster = enemies[i];
         calculateFormationPositions(true);
         calculateFormationPositions(false);
 
@@ -319,6 +347,7 @@ void Battle::renderDiceGroups(sf::RenderWindow& win) {
 void Battle::render(sf::RenderWindow& win) {
     win.draw(backgroundSprite);
 
+    // Helper render team
     auto renderTeam = [&](vector<AnimatedMonster>& team, bool isLeft) {
         for (int i = 0; i < (int)team.size(); ++i) {
             if (!team[i].monster.isAlive()) continue;

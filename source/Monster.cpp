@@ -13,17 +13,20 @@ Monster::Monster(const string& n, int hp, int atk, const string& sprite)
 void Monster::takeDamage(int dmg) {
     if (dmg <= 0) return;
 
+    // 1. Kiểm tra trạng thái Thủ (Defense)
     if (defDuration > 0) {
-        dmg -= 2;
+        dmg -= 2; // Giảm 2 dame
         if (dmg < 0) dmg = 0;
     }
 
-    if (shield > 0) {
+    // 2. Trừ vào Giáp (Shield)
+    if (shield > 0 && dmg > 0) {
         int absorb = std::min(shield, dmg);
         shield -= absorb;
         dmg -= absorb;
     }
 
+    // 3. Trừ Máu (HP)
     if (dmg > 0) {
         currentHP -= dmg;
         if (currentHP < 0) currentHP = 0;
@@ -32,16 +35,25 @@ void Monster::takeDamage(int dmg) {
 
 bool Monster::tryDefend() {
     if (defCooldown > 0) return false;
-    defDuration = 2; 
-    defCooldown = 3; 
+    defDuration = 2; // Tác dụng 2 lượt
+    defCooldown = 3; // Hồi chiêu 3 lượt
     return true;
 }
 
 void Monster::endTurn() {
+    // Giảm thời gian hiệu ứng mỗi cuối lượt
     if (defDuration > 0) defDuration--;
     if (defCooldown > 0) defCooldown--;
 }
 
+// Reset chỉ số khi sang vòng mới (Fix lỗi bất tử)
+void Monster::resetRoundStats() {
+    shield = 0;       // Xóa Giáp
+    defDuration = 0;  // Xóa luôn trạng thái Thủ
+    // defCooldown = 0; // (Tùy chọn: giữ dòng này comment nếu muốn giữ hồi chiêu qua vòng)
+}
+
+// Các hàm Getter/Setter
 void Monster::healFull() { currentHP = maxHP; }
 void Monster::addShield(int val) { if (val > 0) shield += val; }
 void Monster::buffAttack(int v) { attack += v; }
@@ -56,8 +68,6 @@ int Monster::getATK() const { return attack; }
 int Monster::getShield() const { return shield; }
 int Monster::getItemSlots() const { return itemSlots; }
 string Monster::getSpritePath() const { return spritePath; }
-void Monster::resetRoundStats() {
-    shield = 0;       // Xóa giáp
-    defDuration = 0;  // Xóa trạng thái giảm dame
-    defCooldown = 0;  // Xóa hồi chiêu (nếu có)
-}
+
+// [QUAN TRỌNG] Đã xóa getDefDuration và getDefCooldown ở đây 
+// vì chúng đã có trong file Monster.h
